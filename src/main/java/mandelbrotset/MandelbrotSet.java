@@ -297,6 +297,7 @@ public class MandelbrotSet implements KeyListener,
                 if (maxIters < 1)
                     maxIters = 1;
                 update();
+                break;
             case KeyEvent.VK_B:
                 System.out.println("Back");
                 if ( ! xmin_list.isEmpty() ) {
