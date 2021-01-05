@@ -2,7 +2,18 @@
 
 ### Interactive visualisation of the Mandelbrot set.
 
-The solver uses classical Newtonian mechanics.
+The [Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set) is the set of
+complex numbers C for which the function f(z) = z**2 + c, starting with z = 0, 
+does not diverge.
+
+Note that to be in the set, an infinite amount of interactions is required for each point,
+therefore a `maxIters` is set and if the sequence does not diverge within that limit, 
+interaction stops. Hence small value of interaction means that the point diverged quickly.
+The more iteractions, be longer it took to diverge. Points that reached `maxIters` interactions
+did not diverge.
+
+The image represents a complex plane and the color space is calculated from the number of 
+iterations for each point, from red to violet as that number increases and black if `maxIters` is reached.
 
 # Use
 
@@ -19,9 +30,13 @@ Note that the calculation of a frame can take some time. Progress can be seem by
 
 # TODO
 
-Optional input of numThreads. For now hard coded to 64.
+ - [ ] Improve color map 
 
-Optional input of resolution. For now hard coded to 1920 x 1080 pixels.
+ - [ ] Increase precision
+
+ - [ ]Optional input of numThreads. For now hard coded to 64.
+
+ - [ ] Optional input of resolution. For now hard coded to 1920 x 1080 pixels.
 
 ![Interface](screenshot.png)
 
