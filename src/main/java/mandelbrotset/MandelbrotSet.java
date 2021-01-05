@@ -33,7 +33,6 @@ public class MandelbrotSet implements KeyListener,
                                 MouseListener,
                                 MouseMotionListener, 
                                 MouseWheelListener,
-                                ComponentListener,
                                 Runnable {
     
     MyDrawPanel panel;
@@ -65,12 +64,20 @@ public class MandelbrotSet implements KeyListener,
     LinkedList<Double> ymax_list;
     
     public MandelbrotSet() {
+	
         numThreads = 64;
         
         xres = 1920;
         yres = 1080;
-        
-        pixelPerThread = 10;
+
+	// Define how many vertical lines each job will process.
+	// Hence, the number of jobs in the queue is:
+	//
+	//     xres/pixelPerThreas
+	//
+	// It seems that small number are faster.
+        pixelPerThread = 4;
+	
         queue = new LinkedBlockingQueue<>();
         threads = new ArrayList<>();
         
@@ -85,8 +92,6 @@ public class MandelbrotSet implements KeyListener,
         xmax_list = new LinkedList<>();
         ymin_list = new LinkedList<>();
         ymax_list = new LinkedList<>();
-        
-        img = new BufferedImage(xres, yres, BufferedImage.TYPE_INT_RGB);
         
         int i;
         for(i = 0; i < numThreads; i++) {
@@ -121,12 +126,20 @@ public class MandelbrotSet implements KeyListener,
         frame.addMouseListener(this);
         frame.addMouseMotionListener(this);
         frame.addMouseWheelListener(this);
-        frame.addComponentListener(this);
+        frame.addComponentListener(new ComponentResizeEndListener() {
+		@Override
+		public void resizeTimedOut() {
+		    System.out.println("componentResized()");
+		    yres = panel.getHeight();
+		    xres = panel.getWidth();
+		    update();
+		}
+	    });
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(xres, yres);
         frame.setResizable(true);
         frame.setVisible(true);
-        
+        //update();
         loop();
     }
     
@@ -163,7 +176,6 @@ public class MandelbrotSet implements KeyListener,
         try { 
             mandelThreaded();
         } catch (InterruptedException ex) {}
-        //panel.repaint();
     }
     
     long et_updateDomain;
@@ -172,8 +184,10 @@ public class MandelbrotSet implements KeyListener,
         long t0 = System.nanoTime();
         xdomain = new double[xres];
         ydomain = new double[yres];
+	
         iters = new int[xres][yres];
-                
+	img = new BufferedImage(xres, yres, BufferedImage.TYPE_INT_RGB);
+                        
         double xdelta = (xmax - xmin) / xres;
         double ydelta = (ymax- ymin) / yres;
         
@@ -190,7 +204,9 @@ public class MandelbrotSet implements KeyListener,
     public void mandelThreaded() throws InterruptedException {
         System.out.println("mandelThreaded()");
         long t0 = System.nanoTime();
-        
+
+	queue.clear();
+	
         int i = 0;       
         while (i < xres) {
             queue.put(i);
@@ -263,7 +279,7 @@ public class MandelbrotSet implements KeyListener,
 
     // Runnable
     @Override public void run() {
-        System.out.println(Thread.currentThread().getName() + " is running");
+        //System.out.println(Thread.currentThread().getName() + " is running");
         int pixel_start, pixel_end;
         try {
             
@@ -365,9 +381,15 @@ public class MandelbrotSet implements KeyListener,
         
         
     }
-    @Override public void mouseEntered(MouseEvent e) {}
-    @Override public void mouseExited(MouseEvent e) {}
+    @Override public void mouseEntered(MouseEvent e) {
+	//System.out.println("mouseEntered()");
+    }
+    @Override public void mouseExited(MouseEvent e) {
+	//System.out.println("mouseExited()");
+    }
     @Override public void mouseDragged(MouseEvent e) {
+	//System.out.println("mouseDragged()");
+	
         mouseEndX = e.getX();
         mouseEndY = e.getY() - 28;
         mouseRectX = min(mouseStartX, mouseEndX);
@@ -387,17 +409,7 @@ public class MandelbrotSet implements KeyListener,
         //panel.repaint();
     }
     @Override public void mouseWheelMoved(MouseWheelEvent e) {}
-    
-    // ComponentListener
-    @Override public void componentMoved(ComponentEvent e) {};
-    @Override public void componentShown(ComponentEvent e) {};
-    @Override public void componentHidden(ComponentEvent e) {};
-    @Override public void componentResized(ComponentEvent e) { 
-        System.out.println("componentResized()");
-        yres = panel.getHeight();
-        xres = panel.getWidth();
-        update();
-    }
+ 
     
     
     // ***************************************************************************************
@@ -440,7 +452,8 @@ public class MandelbrotSet implements KeyListener,
                         selectedStartDomain[0], selectedEndDomain[0],
                         selectedStartDomain[1], selectedEndDomain[1]), 10, y-=d);
             }
-            gfx.drawString(String.format("Iters: %d / %d", iters[mouseNowAtX][mouseNowAtY], 
+	    if (iters != null && mouseNowAtX < xres && mouseNowAtY < yres)
+               gfx.drawString(String.format("Iters: %d / %d", iters[mouseNowAtX][mouseNowAtY], 
                     maxIters), 10, y-=d);
             if (nowAtDomain != null)
                 gfx.drawString(String.format("Not at: %.2g, %.2g", nowAtDomain[0], 
@@ -453,5 +466,39 @@ public class MandelbrotSet implements KeyListener,
             
         }
     }
+
+    //
+    // Inner class to setup a timer upon ComponentResized events.
+    // This is to avoid updating calculation every time that that event
+    // is fired, since when a window is dragged many events are fired.
+    //
     
+    public abstract class ComponentResizeEndListener
+	extends    ComponentAdapter
+	implements ActionListener {
+
+	private final Timer timer;
+
+	public ComponentResizeEndListener() {
+	    this(500);
+	}
+
+	public ComponentResizeEndListener(int delayMS) {
+	    timer = new Timer(delayMS, this);
+	    timer.setRepeats(false);
+	    timer.setCoalesce(false);
+	}
+
+	@Override
+	public void componentResized(ComponentEvent e) {
+	    timer.restart();
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+	    resizeTimedOut();
+	}
+
+	public abstract void resizeTimedOut();
+}
 }
