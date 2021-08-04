@@ -34,7 +34,7 @@ Note that the calculation of a frame can take some time. Progress can be seem by
 
  - [ ] Increase precision
 
- - [ ]Optional input of numThreads. For now hard coded to 64.
+ - [ ] Optional input of numThreads. For now hard coded to 64.
 
  - [ ] Optional input of resolution. For now hard coded to 1920 x 1080 pixels.
 
